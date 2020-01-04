@@ -1,0 +1,190 @@
+from unicodedata import normalize
+
+
+def entrada_numeros(txt="Digite um valor", numero_float=-1):
+    """
+    Entrada geral para números, tanto por extenso, quanto inteiros ou reais.
+    :param txt: Mensagem para o usuário digitar. Em caso de omissão será inserido a mensagem padrão.
+    :param numero_float: Quantidade de casas decimais. -1 o programa decide. 0 será inteiro e maior que 1 será a
+     quantidade de casas decimais
+    :return: o retorno será um número inteiro ou float.
+
+    exemplo:
+    in >>> 220 mil
+    out >>> 220000
+
+    in >>> três ponto cinco
+    out >>> 3.5
+    """
+    unid_simples = {"zero": 0, "um": 1, "dois": 2, "tres": 3, "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
+                    "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12, "treze": 13, "quatorze": 14, "quinze": 15,
+                    "dezesseis": 16, "dezesete": 17, "dezoito": 18, "dezenove": 19}
+
+    unid_composta = {"vinte": 20, "trinta": 30, "quarenta": 40, "cinquenta": 50, "sessenta": 60, "setenta": 70,
+                     "oitenta": 80, "noventa": 90, "cem": 100, "duzentos": 200, "cento": 100, "trezentos": 300,
+                     "quatrocentos": 400, "quinhentos": 500, "seissentos": 600, "setessentos": 700, "oitocentos": 800,
+                     "novecentos": 900, "ponto": ".", "virgula": ".", "e": 0, ",": ".", ".": "."}
+
+    mult_composto = {"mil": 1000, "milh": 1000000, "bilh": 1000000000, "trilh": 1000000000000, "k": 1000,
+                     "m": 1000000, "g": 1000000000, "t": 1000000000000, "pi": 3.1415, "polegadas": 2.54,
+                     "polegada": 2.54, "in": 2.54, "%": 0.01, "porcento": 0.01, "kilo": 1000, "mega": 1000000,
+                     "giga": 1000000000, "tera": 1000000000000, "km": 1000, "kilos": 1000, "megas": 1000000,
+                     "gigas": 1000000000, "teras": 1000000000000}
+
+    # Tratamento da saída
+    def saida(resultado, tamanho_float):
+        if resultado != None:
+            if tamanho_float == -1:
+                print(resultado)
+            elif tamanho_float == 0:
+                resultado = int(resultado)
+                print(resultado)
+            else:
+                print(f"{resultado:.{tamanho_float}f}")
+
+    #  Em caso de erro gerar opção de corrigir ou sair
+    def corrigir_erro(texto_entrada, tamanho_float):
+        print("Não foi possível converter o valor. Quer tentar novamente?")
+        incorreto = True
+        while incorreto:
+            repetir = str(input("Sim ou não [S/N]: ")).lower()
+            if repetir == "s":
+                entrada_numeros(texto_entrada, tamanho_float)
+                incorreto = False
+            elif repetir == "n":
+                print("Obrigado e volte sempre!")
+                break
+            else:
+                print("Opção inválida")
+
+    # Remove acentos e caracteres
+    def user_input(texto_entrada):
+        simbolos = ["[", "]", ":", "!", "?", ";", "&", "#", "'", "(", ")", "€", "$", "£", "§", "@", "/", "|", "{", "}",
+                    ">", "<", "«", "»", "*", "¨", "+", "%", "ao,", "oes,", "ao", "oes"]
+
+        entrada = str(input(texto_entrada)).lower().replace(",",
+                                                            "")  # Captura a entrada do usuário e o deixa em minúscula
+        entrada = normalize('NFKD', entrada).encode('ASCII', 'ignore').decode('ASCII')  # Remove acentuação das palavas
+        for i in simbolos:  # remove mais caracteres especiais que não foram movidos na primeira limpeza
+            entrada = entrada.replace(i, "")
+        entrada = entrada.replace(".", " . ").split()  # Separa a entrada em grupos, removendo os espaços
+        return entrada
+
+    # -----------------------------------------------------------------------
+    # Transforma em números as strings
+    def transf_num(entrada):
+        tamanho = len(entrada)
+        conjunto = []
+        sub_conjunto = []
+        numero_pontos = 0
+        for item in entrada:
+            tamanho -= 1
+            # Se for número irá adicionar na lista
+            if item.isnumeric():
+                item = int(item)
+                sub_conjunto.append(item)
+
+                if tamanho == 0:  # Se a lista acabou, copiar para lista principal e limpar a sub_lista
+                    conjunto.append(sub_conjunto[:])
+                    sub_conjunto.clear()
+
+            else:  # Não sento inteiro realizará a a busca nas unidades simples
+                if item in unid_simples:
+                    unid_s = unid_simples.get(item)
+                    sub_conjunto.append(unid_s)
+                    if tamanho == 0:  # Se a lista acabou, copiar para lista principal e limpar a sub_lista
+                        conjunto.append(sub_conjunto[:])
+                        sub_conjunto.clear()
+
+                elif item in unid_composta:  # Caso não encontre nada nas unidades simples, irá procurar no próximo grupo
+                    unid_c = unid_composta.get(item)
+
+                    if unid_c == ".":  # Procurar por pontos para identificar números floats por extenso isolando o ponto
+                        tamanho_sub = len(sub_conjunto)
+                        numero_pontos += 1
+
+                        if tamanho_sub != 0:
+                            conjunto.append(sub_conjunto[:])
+                            sub_conjunto.clear()
+                            sub_conjunto.append(unid_c)
+                            conjunto.append(sub_conjunto[:])
+                            sub_conjunto.clear()
+                        else:
+                            sub_conjunto.append(unid_c)
+                            conjunto.append(sub_conjunto[:])
+                            sub_conjunto.clear()
+
+                    elif tamanho == 0:  # Se a lista acabou, copiar para lista principal e limpar a sub_lista
+                        sub_conjunto.append(unid_c)
+                        conjunto.append(sub_conjunto[:])
+                        sub_conjunto.clear()
+
+                    else:
+                        sub_conjunto.append(unid_c)
+
+                else:
+                    sub_conjunto.append(mult_composto.get(item))
+                    conjunto.append(sub_conjunto[:])
+                    sub_conjunto.clear()
+        return conjunto, numero_pontos
+
+    # -----------------------------------------------------------------------
+    # Vai interepretar as listas de acordo com o modelo recebido
+    def interpretador(conjunto, numero_pontos, numero_float):
+        try:
+            num_float = []
+            total = 0
+            sub_total = 0
+            if numero_pontos > 1:
+                print(f" o valor digitado possui muitos '.' Gostaria de digitar novamente?")
+                corrigir_erro(txt)
+
+            if numero_pontos == 0:
+                for sub_conjunto in conjunto:
+                    for i in sub_conjunto:
+                        if i < 999 and i not in mult_composto.values():
+                            sub_total += i
+                        else:
+                            if sub_total == 0:
+                                total += i
+                            elif i in mult_composto.values():
+                                sub_total *= i
+                                total += sub_total
+                                sub_total = 0
+                    total += sub_total
+                return total
+            if numero_pontos == 1:
+                for sub_conjunto in conjunto:
+                    for i in sub_conjunto:
+                        if i == ".":
+                            num_float.append(str(total))
+                            num_float.append(i)
+                            total = 0
+                            sub_total = 0
+                        else:
+                            if i < 999 and i not in mult_composto.values():
+                                sub_total += i
+                            else:
+                                if sub_total == 0:
+                                    total += i
+                                elif i in mult_composto.values():
+                                    sub_total *= i
+                                    total += sub_total
+                                    sub_total = 0
+
+                    total += sub_total
+                num_float.append(str(sub_total))
+                num_float = "".join(num_float)
+                num_float = float(num_float)
+                return num_float
+        except:
+            corrigir_erro(txt, numero_float)
+
+    a = user_input(txt)
+    b, c = transf_num(a)
+    d = interpretador(b, c, numero_float)
+
+    saida(d, numero_float)
+
+
+entrada_numeros("Digite um valor por extenso: ", -1)
