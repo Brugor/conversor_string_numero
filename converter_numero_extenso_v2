@@ -1,0 +1,250 @@
+from unicodedata import normalize
+
+
+def entrada_numeros(mensagem_entrada="Digite um valor: ", numero_float=-1):
+    unid_simples = {"zero": 0, "um": 1, "dois": 2, "tres": 3, "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
+                    "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12, "treze": 13, "quatorze": 14, "quinze": 15,
+                    "dezesseis": 16, "dezesete": 17, "dezoito": 18, "dezenove": 19}
+
+    unid_composta = {"vinte": 20, "trinta": 30, "quarenta": 40, "cinquenta": 50, "sessenta": 60, "setenta": 70,
+                     "oitenta": 80, "noventa": 90, "cem": 100, "duzentos": 200, "cento": 100, "trezentos": 300,
+                     "quatrocentos": 400, "quinhentos": 500, "seissentos": 600, "setessentos": 700, "oitocentos": 800,
+                     "novecentos": 900, "ponto": ".", "virgula": ".", "e": 0, ",": ".", ".": ".", "menos": "-"}
+
+    mult_composto = {"mil": 1000, "milh": 1000000, "bilh": 1000000000, "trilh": 1000000000000, "k": 1000,
+                     "m": 1000000, "g": 1000000000, "t": 1000000000000, "pi": 3.1415, "polegadas": 2.54,
+                     "polegada": 2.54, "in": 2.54, "%": 0.01, "porcento": 0.01, "kilo": 1000, "mega": 1000000,
+                     "giga": 1000000000, "tera": 1000000000000, "km": 1000, "kilos": 1000, "megas": 1000000,
+                     "gigas": 1000000000, "teras": 1000000000000}
+
+    simbolos = ["[", "]", ":", "!", "?", ";", "&", "#", "'", "(", ")", "€", "$", "£", "§", "@", "|", "{", "}",
+                "«", "»", "¨", "ao,", "oes,", "ão", "ões", "ão,", "ões,", "ão", "ões", ","]
+
+    isolar_itens = [",", "+", "-", "/", "<", ">", "*", "**", "%", "[", "]", ":", "!", "?", ";", "&", "#", "'", "(",
+                    ")", "€", "$", "£", "§", "@", "|", "{", "}", "«", "»", "¨", "ao,", "oes,", "ão", "ões", "ão,",
+                    "ões,", "ão", "ões"]
+
+    entrada_fatiada = []
+    grupo = []
+    sub_grupo = []
+
+    #  Recebe a mensagem que será exibida ao usuário e devolve o valor digitado
+    def input_usuario(mensagem):
+        return str(input(mensagem))
+
+    #  Recebe o valor digitado pelo usuário e devolve após uma lista limpa com strings
+    def tratamento_entrada(entrada_sem_tratar):
+        entrada = entrada_sem_tratar.lower()
+
+        #  Separa com espaços itens que serão utilizados nas demais etapas
+        for item in isolar_itens:
+            if item == "-":
+                entrada = entrada.replace(item, f" -")
+            else:
+                entrada = entrada.replace(item, f" {item} ")
+
+        #  Elimina itens que não serão utilizados
+        for simb in simbolos:
+            entrada = entrada.replace(simb, "")
+
+        #  Remove acentos e outros simbolos que não serão necessários
+        entrada = normalize('NFKD', entrada).encode('ASCII', 'ignore').decode('ASCII')  # Remove acentuação das palavas
+        #  Fatia a lista para ser filtrada
+        entrada = entrada.split()
+        #  O filtro que só mantem letras, números ou outros itens que estão presentes nas listas
+        for entr in entrada:
+            #  Se o item está na lista, fica
+            if entr in unid_simples or entr in unid_composta or entr in mult_composto:
+                entrada_fatiada.append(entr)
+            #  Se o valor está na lista, fica
+            elif entr in unid_simples.values() or entr in unid_composta.values() or entr in mult_composto.values():
+                entrada_fatiada.append(entr)
+            #  Se é número, fica
+            elif entr.isnumeric():
+                entrada_fatiada.append(entr)
+            # Se não for um símbolo (equivale a ser um item a ser isolado, como + - /), fica
+            elif entr not in simbolos:
+                entrada_fatiada.append(entr)
+
+        return entrada_fatiada
+
+    #  Recebe uma lista com strings que podem ser convertidos em números
+    def converter_em_numero(lista_de_numeros_string):
+        for item_string in lista_de_numeros_string:
+            # Avalia se o item é um número. Isnumeric não funciona com números negativos
+            temporario = item_string.replace("-", "")
+            if temporario.isnumeric():
+                item_string = int(item_string)
+                sub_grupo.append(item_string)
+
+            # Isnumerc não funciona com float, portanto a verificação ocorreu aqui
+            elif "." in item_string:
+                try:
+                    item_string = float(item_string)
+                    sub_grupo.append(item_string)
+                except:
+                    sub_grupo.append(item_string)
+
+            # Insere valores entre 20 e 900, que podem vir acompanhado de outro número
+            elif item_string in unid_composta:
+                inserir = unid_composta.get(item_string)
+                sub_grupo.append(inserir)
+
+            # Insere valores que se somam ao anterior (unid_composta)
+            elif item_string in unid_simples:
+                inserir = unid_simples.get(item_string)
+                sub_grupo.append(inserir)
+
+            # Insere valor que multiplicará os valores anteriores
+            elif item_string in mult_composto:
+                inserir = mult_composto.get(item_string)
+                sub_grupo.append(inserir)
+                grupo.append(sub_grupo[:])
+                sub_grupo.clear()
+
+        grupo.append(sub_grupo[:])
+        sub_grupo.clear()
+        return grupo
+
+    # Recebe uma lista com vários grupos de números e efetuará a soma e/ou multiplicação
+    def interpretador(lista):
+        grupo_strg = []
+        total = 0
+        sub_total = 0
+
+        for i in lista:
+            contador = len(i)
+            for item in i:
+                contador -= 1
+
+                # Se surgir "." ele irá inserir na lista o que já foi somado e colocará o ponto a seguir
+                if item == ".":
+                    total += sub_total
+                    temp = str(total)
+                    grupo_strg.append(temp)
+                    sub_total = 0
+                    total = 0
+                    grupo_strg.append(".")
+
+                    # Se o ponto for o último item digitado ele colocará o zero a seguir para criar o float
+                    if contador == 0:
+                        total += sub_total
+                        temp = str(total)
+                        grupo_strg.append(temp)
+                        sub_total = 0
+                        total = 0
+                        grupo_strg.append(".0")
+
+                elif item == "-":
+                    grupo_strg.insert(0, "-")
+
+                elif contador == 0:
+
+                    try:
+                        if item < 999 or item < -999:
+                            if item in mult_composto.values():
+                                total += sub_total
+                                total *= item
+                                temp = str(total)
+                                grupo_strg.append(temp)
+                                sub_total = 0
+                                total = 0
+                            else:
+                                sub_total += item
+                                total += sub_total
+
+                            temp = str(total)
+                            grupo_strg.append(temp)
+                            sub_total = 0
+                            total = 0
+                        else:
+                            if sub_total == 0:
+                                total = item
+                            else:
+                                total += sub_total
+                                total *= item
+
+                            temp = str(total)
+                            grupo_strg.append(temp)
+                            sub_total = 0
+                            total = 0
+                    except:
+                        if type(item) is int or type(item) is float:
+                            grupo_strg.append(item)
+
+                elif contador > 0:
+                    if item < 999 or item < -999:
+                        if item in mult_composto.values():
+                            total += sub_total
+                            total *= item
+                            temp = str(total)
+                            grupo_strg.append(temp)
+                            sub_total = 0
+                            total = 0
+                        else:
+                            sub_total += item
+
+                    else:
+                        total += sub_total
+                        total *= item
+                        temp = str(total)
+                        grupo_strg.append(temp)
+                        sub_total = 0
+                        total = 0
+
+            resultado = []
+            x = 0
+            for n in grupo_strg:
+                if n == ".":
+                    a = x
+                    a = str(a)
+                    resultado.append(a)
+                    resultado.append(".")
+                    x = 0
+                elif n == "-":
+                    resultado.append("-")
+                elif type(n) is int:
+                    x += n
+                elif type(n) is float:
+                    x += n
+                else:
+                    try:
+                        n = int(n)
+                    except:
+                        n = float(n)
+                    x += n
+
+            a = x
+            a = str(a)
+            resultado.append(a)
+            resultado = "".join(resultado)
+            return resultado
+
+    def saida(resultado, tamanho_float):
+        if resultado is not None:
+            if tamanho_float == -1:
+                print(resultado)
+            elif tamanho_float == 0:
+                resultado = int(resultado)
+                print(resultado)
+            else:
+                resultado = float(resultado)
+                print(f"{resultado:.{tamanho_float}f}")
+
+    entrada_usuario = input_usuario(mensagem_entrada)
+    lista_numeros_em_string = tratamento_entrada(entrada_usuario)
+    lista_saida = converter_em_numero(lista_numeros_em_string)
+    resultado_final = interpretador(lista_saida)
+    saida(resultado_final, numero_float)
+
+#-----------------------------------------------------
+# Exemplo:
+# entrada_numeros(Digite o texto, numero de casas decimais)
+#-1 => o programa escolhe o formato de saída
+# 0 => a saída será um número inteiro
+# n => a quantidade n de casas decimais
+ 
+#-----------------------------------------------------
+
+
+entrada_numeros("Escolha um número: ")
